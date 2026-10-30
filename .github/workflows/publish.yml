@@ -1,0 +1,69 @@
+name: Publish EduScope
+
+on:
+  schedule:
+    # KST = UTC+9. Claude finishes 10:00-10:30 KST.
+    - cron: '7 1 * * *'    # 10:07 KST
+    - cron: '22 1 * * *'   # 10:22 KST
+    - cron: '37 1 * * *'   # 10:37 KST
+    - cron: '52 1 * * *'   # 10:52 KST
+    - cron: '17 2 * * *'   # 11:17 KST
+    - cron: '7 4 * * *'    # 13:07 KST (safety)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync latest HTML from Google Drive
+        id: sync
+        env:
+          DRIVE_API_KEY: ${{ secrets.DRIVE_API_KEY }}
+          DRIVE_FOLDER_ID: '1XRuS6_xrNlblJNiznta7rH5DbZd610S4'
+          CUSTOM_DOMAIN: 'edu.withsong.co.kr'
+        run: node scripts/sync.mjs
+
+      - name: Commit archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A site
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Publish ${{ steps.sync.outputs.latest }}"
+            git push
+          fi
+
+      - name: Configure Pages
+        if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/deploy-pages@v4
