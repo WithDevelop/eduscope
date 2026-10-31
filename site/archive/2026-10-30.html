@@ -246,8 +246,7 @@ footer p{margin:6px 0 0;max-width:640px}
 <footer class="wide">
   <div class="row">
     <div><div class="fl">Edu<i>Scope</i></div>
-      <p id="copy"></p>
-      <p>기사 제목은 원문 기사로 연결됩니다. 요약과 대응 메모는 원문을 읽고 새로 쓴 문장이며, 모든 이미지는 기사 내용을 바탕으로 만든 개념 그래픽(AI 생성 또는 코드 제작)으로 실제 사진이 아닙니다. 입시 일정은 반드시 각 대학 모집요강과 공식 공지로 다시 확인하세요.</p></div>
+      <p id="copy"></p></div>
     <nav aria-label="하단 메뉴" id="fnav"></nav>
   </div>
 </footer>
@@ -279,8 +278,7 @@ let current = "home";
 function setNav(a){ current=a; $("#nav").innerHTML = NAV.map(([k,t])=>`<li><a href="#${k}" data-go="${k}" ${a===k?'aria-current="page"':""}>${t}</a></li>`).join(""); }
 $("#ed").textContent = `${fmt(ED.date)}(${wk(ED.date)}) 발행`;
 $("#fnav").innerHTML = NAV.map(([k,t])=>`<a href="#${k}" data-go="${k}">${t}</a>`).join("");
-const nNew = items.filter(i=>i.freshness==="당일 신규").length, nIC = items.filter(isIC).length;
-$("#copy").textContent = `${fmt(ED.date)}(${wk(ED.date)}) 발행 · 수집 범위 ${ED.window} · 후보 ${ED.counts.candidates}건 → 검증 ${ED.counts.verified}건 → 선정 ${items.length}건`;
+$("#copy").textContent = `${fmt(ED.date)}(${wk(ED.date)}) 발행`;
 
 function card(it){
   return `<article class="card" id="c-${it.id}">${pic(it)}${lbl(it)}<h3 class="t">${tlink(it)}</h3><div class="m">${dt(it)}${fresh(it)}${st(it)}</div><p>${esc(it.summary)}</p><div><button class="more" type="button" data-open="${it.id}">브리핑 보기 →</button></div></article>`;
@@ -305,7 +303,7 @@ function calendar(){
 }
 function sectionBlock(s, withHead=true){
   const list=s.order.map(id=>byId[id]);
-  return `${withHead?`<div class="sh"><h2 id="h-${s.key}">${esc(s.en)}<span>${esc(s.ko)}</span></h2><span class="cnt">${list.length}건</span></div>`:""}<div class="grid ${list.length===5?"five":""}">${list.map(card).join("")}</div>${s.note?`<p class="secnote">${esc(s.note)}</p>`:""}`;
+  return `${withHead?`<div class="sh"><h2 id="h-${s.key}">${esc(s.en)}<span>${esc(s.ko)}</span></h2><span class="cnt">${list.length}건</span></div>`:""}<div class="grid ${list.length===5?"five":""}">${list.map(card).join("")}</div>`;
 }
 function viewHome(){
   setNav("home");
@@ -315,10 +313,9 @@ function viewHome(){
   let h=`<section class="hero" aria-label="주요 기사">
    <div class="side" aria-label="TOP 2·3">${side.map(it=>`<article>${pic(it)}${lbl(it)}<h3 class="t">${tlink(it)}</h3><div class="m" style="display:flex;gap:8px;flex-wrap:wrap">${dt(it)}${st(it)}</div><div><button class="more" type="button" data-open="${it.id}">브리핑 보기 →</button></div></article>`).join("")}</div>
    <div class="c lead">${pic(lead)}<span class="rank">TODAY'S No.1 · ${esc(lead.cat)}</span><h2 class="t">${tlink(lead)}</h2><p>${esc(lead.summary)}</p><div class="by">${dt(lead)}<span>·</span><span>${esc(lead.outlet)}</span>${st(lead)}${fresh(lead)}</div><button class="more" type="button" data-open="${lead.id}">브리핑 보기 →</button></div>
-   <aside class="icw" aria-labelledby="h-ic"><h2 id="h-ic">INCHEON WATCH<span>인천 ${ic.length}건</span></h2><p class="sum">${esc(ED.incheon_summary)}</p>${ic.map(it=>`<button class="row" type="button" data-open="${it.id}"><span><b>${esc(it.title)}</b>${dt(it)}</span>${pic(it).replace('<button class="pic"','<span class="pic"').replace('</button>','</span>').replace(/ type="button"| data-open="[^"]+"| aria-label="[^"]+"/g,"")}</button>`).join("")}</aside>
+   <aside class="icw" aria-labelledby="h-ic"><h2 id="h-ic">INCHEON WATCH<span>인천 ${ic.length}건</span></h2>${ic.map(it=>`<button class="row" type="button" data-open="${it.id}"><span><b>${esc(it.title)}</b>${dt(it)}</span>${pic(it).replace('<button class="pic"','<span class="pic"').replace('</button>','</span>').replace(/ type="button"| data-open="[^"]+"| aria-label="[^"]+"/g,"")}</button>`).join("")}</aside>
   </section>
-  <section class="top5" aria-labelledby="h-top5"><h2 id="h-top5">TODAY'S TOP 5<span>100점 기준 · 영향 30 · 시급성 25 · 실용성 20 · 신규성 15 · 신뢰도 10</span></h2>${top5.map((it,i)=>`<button type="button" data-jump="${it.id}"><span class="n">${i+1}</span><span><b>${esc(it.short||it.title)}</b><small>${total(it)}점 · ${esc(it.cat)}${isIC(it)?" · 인천":""}</small></span></button>`).join("")}</section>
-  <div class="stats" role="note"><span>수집 범위 <b>${esc(ED.window)}</b></span><span>후보 <b>${ED.counts.candidates}</b> → 검증 <b>${ED.counts.verified}</b> → 선정 <b>${items.length}</b></span><span>당일 신규 <b>${nNew}</b> · 보충 <b>${items.length-nNew}</b></span><span>인천 관련 <b>${nIC}</b>건</span></div>`;
+  <section class="top5" aria-labelledby="h-top5"><h2 id="h-top5">TODAY'S TOP 5<span>100점 기준 · 영향 30 · 시급성 25 · 실용성 20 · 신규성 15 · 신뢰도 10</span></h2>${top5.map((it,i)=>`<button type="button" data-jump="${it.id}"><span class="n">${i+1}</span><span><b>${esc(it.short||it.title)}</b><small>${total(it)}점 · ${esc(it.cat)}${isIC(it)?" · 인천":""}</small></span></button>`).join("")}</section>`;
   ED.sections.forEach(s=>{ h+=`<section class="sec" aria-labelledby="h-${s.key}">${sectionBlock(s)}</section>`; });
   h+=`<section class="sec" aria-labelledby="h-cal"><div class="sh"><h2 id="h-cal">Calendar<span>향후 14일 · ${md(ED.calendar[0].date)} ~ ${md(ED.calendar[ED.calendar.length-1].date)}</span></h2></div>${calendar()}</section>`;
   h+=`<section class="sec" aria-labelledby="h-ins"><div class="sh"><h2 id="h-ins">Expert Insight<span>이번 호 종합 · 편집 분석은 사실과 구분해 표시</span></h2></div>${insight()}</section>`;
@@ -329,11 +326,11 @@ const pageHead=(en,t,p)=>`<div class="ph"><span class="lbl">${esc(en)}</span><h1
 function viewSection(k){
   const s=ED.sections.find(x=>x.key===k); setNav(k);
   const all=items.filter(i=>s.cats.includes(i.cat)).sort((a,b)=>total(b)-total(a));
-  return `<div class="page">${pageHead(s.en,s.ko,`${all.length}건 · 점수순`)}<div class="grid">${all.map(card).join("")}</div>${s.note?`<p class="secnote">${esc(s.note)}</p>`:""}</div>`;
+  return `<div class="page">${pageHead(s.en,s.ko,`${all.length}건 · 점수순`)}<div class="grid">${all.map(card).join("")}</div></div>`;
 }
 function viewIncheon(){
   setNav("incheon"); const l=items.filter(isIC).sort((a,b)=>total(b)-total(a));
-  return `<div class="page">${pageHead("Incheon Watch","인천 주요 뉴스",`${l.length}건 · ${esc(ED.incheon_summary)}`)}<div class="grid">${l.map(card).join("")}</div><p class="secnote">인천에도 적용되는 전국 정책은 기사마다 '인천 적용 전국정책'으로 표시했습니다(${items.filter(i=>i.incheon==="인천 적용 전국정책").length}건).</p></div>`;
+  return `<div class="page">${pageHead("Incheon Watch","인천 주요 뉴스",`${l.length}건`)}<div class="grid">${l.map(card).join("")}</div><p class="secnote">인천에도 적용되는 전국 정책은 기사마다 '인천 적용 전국정책'으로 표시했습니다(${items.filter(i=>i.incheon==="인천 적용 전국정책").length}건).</p></div>`;
 }
 function viewSearch(q){
   setNav(""); const terms=q.toLowerCase().split(/\s+/).filter(Boolean);
