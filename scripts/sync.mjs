@@ -1,4 +1,4 @@
-// Sync dated EduScope HTML files (YYYY-MM-DD.html) from a public Google Drive folder.
+// Sync dated EduTrend HTML files (YYYY-MM-DD.html) from a public Google Drive folder.
 // The newest date becomes site/index.html; every edition is kept in site/archive/.
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -72,10 +72,10 @@ const items = dated.map(f => f.name).reverse()
   .map(n => `    <li><a href="./${n}">${n.replace('.html', '')}</a></li>`).join('\n');
 const archiveHtml = `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EduScope Daily Brief - 지난 호</title>
+<title>EduTrend Daily Brief - 지난 호</title>
 <style>body{font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:640px;margin:40px auto;padding:0 20px;line-height:1.7}a{color:#1a56db}</style>
 </head><body>
-  <h1>EduScope Daily Brief 지난 호</h1>
+  <h1>EduTrend Daily Brief 지난 호</h1>
   <p><a href="/">최신호 보기</a></p>
   <ul>
 ${items}
