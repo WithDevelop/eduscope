@@ -2,7 +2,8 @@ name: Publish EduScope
 
 on:
   schedule:
-    # KST = UTC+9. Claude finishes 10:00-10:30 KST.
+    # KST = UTC+9. Claude finishes 08:15-08:30 KST and dispatches this workflow itself.
+    # These scheduled runs are the backup: they deploy only when the live site is behind.
     - cron: '7 1 * * *'    # 10:07 KST
     - cron: '22 1 * * *'   # 10:22 KST
     - cron: '37 1 * * *'   # 10:37 KST
@@ -15,17 +16,21 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  SITE_URL: 'https://edu.withsong.co.kr'
+
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      deploy: ${{ steps.decide.outputs.deploy }}
+      latest: ${{ steps.sync.outputs.latest }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,17 +58,66 @@ jobs:
             git push
           fi
 
+      # Deploy when files changed, on manual runs, or when the live site is behind the repo
+      # (e.g. an earlier run committed the files but its deploy step failed).
+      - name: Decide whether to deploy
+        id: decide
+        run: |
+          deploy=false
+          if [ "${{ steps.sync.outputs.changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            deploy=true
+          else
+            live=$(curl -fsSL "$SITE_URL/archive/manifest.json?nocache=$(date +%s)" || echo "")
+            if [ "$live" != "$(cat site/archive/manifest.json)" ]; then
+              echo "Live site differs from repo -> redeploy"
+              deploy=true
+            fi
+          fi
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+          echo "deploy=$deploy"
+
       - name: Configure Pages
-        if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.decide.outputs.deploy == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload site
-        if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.decide.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
+  # Separate job: deploy-pages can miss an artifact that was finalized a fraction of a
+  # second earlier in the same job (actions/deploy-pages#451). Wait until it is listed,
+  # then deploy, retrying once if the lookup still misses.
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy1.outputs.page_url || steps.deploy2.outputs.page_url }}
+    steps:
+      - name: Wait for github-pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 24); do
+            n=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?name=github-pages" --jq '.total_count' || echo 0)
+            if [ "${n:-0}" -ge 1 ]; then echo "artifact visible (try $i)"; sleep 5; exit 0; fi
+            sleep 5
+          done
+          echo "::warning::artifact not listed after 120s; trying deploy anyway"
+
       - name: Deploy to GitHub Pages
-        id: deployment
-        if: steps.sync.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        id: deploy1
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Wait before retry
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 30
+
+      - name: Deploy to GitHub Pages (retry)
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
         uses: actions/deploy-pages@v4
